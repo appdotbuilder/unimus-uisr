@@ -8,7 +8,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
+
 
 class DashboardController extends Controller
 {
@@ -27,9 +27,9 @@ class DashboardController extends Controller
             ->get();
 
         // Overall statistics (visible to curators and admins)
-        $statistics = [];
+        $statistics = null;
         if ($user->isCurator()) {
-            $statistics = $this->getOverallStatistics($request);
+            $statistics = (object) $this->getOverallStatistics($request);
         }
 
         // Recent activity
@@ -39,7 +39,7 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
 
-        return Inertia::render('dashboard', [
+        return view('dashboard', [
             'userDatasets' => $userDatasets,
             'statistics' => $statistics,
             'recentDatasets' => $recentDatasets,

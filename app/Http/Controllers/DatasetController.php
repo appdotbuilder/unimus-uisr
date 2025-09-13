@@ -10,7 +10,7 @@ use App\Models\DatasetFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Inertia\Inertia;
+
 
 class DatasetController extends Controller
 {
@@ -20,6 +20,7 @@ class DatasetController extends Controller
     public function index(Request $request)
     {
         $query = Dataset::with(['user.profile', 'primaryFile'])
+            ->withCount(['files', 'reviews'])
             ->published()
             ->latest('published_at');
 
@@ -32,6 +33,14 @@ class DatasetController extends Controller
             });
         }
 
+        // Filter by status (for searching both published and under review)
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        } else {
+            // Default to only published if no status filter
+            $query->where('status', 'published');
+        }
+
         // Filter by domain
         if ($request->filled('domain')) {
             $query->byDomain($request->domain);
@@ -42,7 +51,25 @@ class DatasetController extends Controller
             $query->byCollaborationType($request->collaboration_type);
         }
 
-        $datasets = $query->paginate(12)->withQueryString();
+        // Sorting
+        if ($request->filled('sort')) {
+            switch ($request->sort) {
+                case 'oldest':
+                    $query->oldest('published_at');
+                    break;
+                case 'title':
+                    $query->orderBy('title');
+                    break;
+                case 'popular':
+                    $query->orderByDesc('download_count');
+                    break;
+                default:
+                    $query->latest('published_at');
+            }
+        }
+
+        $perPage = $request->get('per_page', 10);
+        $datasets = $query->paginate($perPage)->withQueryString();
 
         // Get available domains for filter
         $domains = Dataset::published()
@@ -51,7 +78,7 @@ class DatasetController extends Controller
             ->sort()
             ->values();
 
-        return Inertia::render('datasets/index', [
+        return view('datasets.index', [
             'datasets' => $datasets,
             'domains' => $domains,
             'filters' => $request->only(['search', 'domain', 'collaboration_type']),
@@ -63,7 +90,7 @@ class DatasetController extends Controller
      */
     public function create()
     {
-        return Inertia::render('datasets/create');
+        return view('datasets.create');
     }
 
     /**
@@ -91,14 +118,16 @@ class DatasetController extends Controller
      */
     public function show(Dataset $dataset)
     {
-        $dataset->load(['user.profile', 'files', 'reviews.reviewer']);
+        $dataset->load(['user.profile', 'files', 'reviews']);
+        $dataset->loadCount(['files', 'reviews']);
 
-        // Increment download count if dataset is published and user is not the owner
-        if ($dataset->status === 'published' && auth()->id() !== $dataset->user_id) {
-            $dataset->increment('download_count');
+        // Increment view count if dataset is published and user is not the owner
+        if ($dataset->status === 'published' && (!auth()->check() || auth()->id() !== $dataset->user_id)) {
+            // Add views_count to fillable if not exists
+            $dataset->increment('download_count'); // Using download_count as view count for now
         }
 
-        return Inertia::render('datasets/show', [
+        return view('datasets.show', [
             'dataset' => $dataset,
             'canEdit' => auth()->check() && 
                        (auth()->id() === $dataset->user_id || auth()->user()->isAdmin()),
@@ -123,7 +152,7 @@ class DatasetController extends Controller
 
         $dataset->load('files');
 
-        return Inertia::render('datasets/edit', [
+        return view('datasets.edit', [
             'dataset' => $dataset,
         ]);
     }

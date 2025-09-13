@@ -8,7 +8,7 @@ use App\Http\Requests\UpdateProfileRequest;
 use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+
 
 class ProfileController extends Controller
 {
@@ -22,7 +22,7 @@ class ProfileController extends Controller
             $query->published()->with('primaryFile')->latest('published_at');
         }]);
 
-        return Inertia::render('profiles/show', [
+        return view('profiles.show', [
             'user' => $user,
             'isOwnProfile' => auth()->check() && auth()->id() === $user->id,
         ]);
@@ -38,7 +38,7 @@ class ProfileController extends Controller
                 ->with('info', 'You already have a profile.');
         }
 
-        return Inertia::render('profiles/create');
+        return view('profiles.create');
     }
 
     /**
@@ -72,7 +72,7 @@ class ProfileController extends Controller
                 ->with('info', 'Please create your profile first.');
         }
 
-        return Inertia::render('profiles/edit', [
+        return view('profiles.edit', [
             'profile' => $profile,
         ]);
     }
