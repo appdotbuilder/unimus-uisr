@@ -91,6 +91,11 @@
                     <h1 class="display-4 fw-bold mb-4">
                         📊 Unimus Intelligent System Repository
                     </h1>
+                    <div class="mb-3">
+                        <span class="badge bg-light text-dark fs-6 px-3 py-2">
+                            🚀 Advanced Research Platform • 🌐 Global Collaboration • 📈 Academic Excellence
+                        </span>
+                    </div>
                     <p class="lead mb-4">
                         Advanced research dataset repository supporting academic excellence through collaborative data sharing and professional curation workflows.
                     </p>
